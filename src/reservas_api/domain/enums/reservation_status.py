@@ -1,0 +1,10 @@
+from enum import StrEnum
+
+
+class ReservationStatus(StrEnum):
+    CREATED = "CREATED"
+    PAYMENT_IN_PROGRESS = "PAYMENT_IN_PROGRESS"
+    PAID = "PAID"
+    SUPPLIER_CONFIRMED = "SUPPLIER_CONFIRMED"
+    CANCELLED = "CANCELLED"
+

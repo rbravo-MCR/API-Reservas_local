@@ -1,0 +1,384 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Outlet Reservas",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health check",
+        "description": "Return service health status.",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Api V1 Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reservations": {
+      "post": {
+        "tags": [
+          "reservations"
+        ],
+        "summary": "Create reservation",
+        "description": "Create a reservation and enqueue external processing via outbox.",
+        "operationId": "create_reservation_api_v1_reservations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Reservation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponseDTO"
+                },
+                "example": {
+                  "reservation_code": "AB12CD34",
+                  "status": "CREATED",
+                  "supplier_code": "SUP01",
+                  "pickup_datetime": "2026-12-01T10:00:00Z",
+                  "dropoff_datetime": "2026-12-03T10:00:00Z",
+                  "total_amount": "180.50",
+                  "created_at": "2026-12-01T09:59:58Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Business rule violation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server/database error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CustomerDTO": {
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name",
+            "examples": [
+              "Ana"
+            ]
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name",
+            "examples": [
+              "Perez"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone",
+            "examples": [
+              "+34123456789"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "email"
+        ],
+        "title": "CustomerDTO",
+        "description": "Customer identity data for reservation creation."
+      },
+      "ErrorResponseDTO": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "ErrorResponseDTO",
+        "description": "Error payload used for business, validation and server failures."
+      },
+      "ReservationRequestDTO": {
+        "properties": {
+          "supplier_code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Supplier Code",
+            "examples": [
+              "SUP01"
+            ]
+          },
+          "pickup_office_code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Pickup Office Code",
+            "examples": [
+              "MAD01"
+            ]
+          },
+          "dropoff_office_code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Dropoff Office Code",
+            "examples": [
+              "MAD02"
+            ]
+          },
+          "pickup_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Pickup Datetime"
+          },
+          "dropoff_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Dropoff Datetime"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+              }
+            ],
+            "title": "Total Amount",
+            "examples": [
+              "180.50"
+            ]
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerDTO"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/VehicleDTO"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_code",
+          "pickup_office_code",
+          "dropoff_office_code",
+          "pickup_datetime",
+          "dropoff_datetime",
+          "total_amount",
+          "customer",
+          "vehicle"
+        ],
+        "title": "ReservationRequestDTO",
+        "description": "Request body for `POST /api/v1/reservations`."
+      },
+      "ReservationResponseDTO": {
+        "properties": {
+          "reservation_code": {
+            "type": "string",
+            "title": "Reservation Code"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReservationStatus"
+          },
+          "supplier_code": {
+            "type": "string",
+            "title": "Supplier Code"
+          },
+          "pickup_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Pickup Datetime"
+          },
+          "dropoff_datetime": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Dropoff Datetime"
+          },
+          "total_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total Amount"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reservation_code",
+          "status",
+          "supplier_code",
+          "pickup_datetime",
+          "dropoff_datetime",
+          "total_amount",
+          "created_at"
+        ],
+        "title": "ReservationResponseDTO",
+        "description": "Response payload returned after reservation creation."
+      },
+      "ReservationStatus": {
+        "type": "string",
+        "enum": [
+          "CREATED",
+          "PAYMENT_IN_PROGRESS",
+          "PAID",
+          "SUPPLIER_CONFIRMED",
+          "CANCELLED"
+        ],
+        "title": "ReservationStatus"
+      },
+      "VehicleDTO": {
+        "properties": {
+          "vehicle_code": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Vehicle Code",
+            "examples": [
+              "VH001"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Model",
+            "examples": [
+              "Corolla"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Category",
+            "examples": [
+              "Economy"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "vehicle_code",
+          "model",
+          "category"
+        ],
+        "title": "VehicleDTO",
+        "description": "Vehicle snapshot used for reservation and provider dispatch."
+      }
+    }
+  }
+}
