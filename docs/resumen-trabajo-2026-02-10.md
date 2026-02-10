@@ -52,3 +52,28 @@ Se cerraron los puntos pendientes del plan en `.kiro/specs/reservas-api/tasks.md
 - Tasks 22, 23 y 24: completadas.
 - Sistema validado funcionalmente con pruebas unitarias, de integración, property, e2e y carga/estrés.
 - Riesgo principal remanente: latencia y errores `DATABASE_ERROR` bajo alta concurrencia; se recomienda tuning de BD y optimización del path de persistencia antes de despliegue productivo.
+
+## Ronda de optimización adicional
+
+Se ejecutó una ronda de optimización posterior:
+
+- Persistencia insert-first en repositorio.
+- Eliminación de lock global en rate limiter.
+- Configuración de pool de BD externalizada (defaults seguros).
+- Corrección outbox: si gateway retorna `success=False`, evento queda `FAILED` (no `PROCESSED`).
+
+Resultados destacados tras optimización:
+
+- Performance:
+  - `load-100-users`: de 53 fallos a 0.
+  - `sustained-10m`: de 32 fallos a 0.
+  - Throughput aumentó en todos los escenarios.
+- Estrés:
+  - `stress-ramp-500`: de 3.32% a 0.32% de fallos.
+  - `stress-breakpoint-1000`: de 11.05% a 1.02% de fallos.
+  - Integridad sin colisiones ni pérdida de eventos.
+
+Ver reportes comparativos:
+
+- `docs/performance-report-2026-02-10.md`
+- `docs/stress-report-2026-02-10.md`
