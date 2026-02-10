@@ -5,8 +5,10 @@ __pycache__/
 .ruff_cache/
 .hypothesis/
 .coverage
+coverage.xml
 htmlcov/
 .mypy_cache/
 
 .env
 uv.lock
+artifacts/

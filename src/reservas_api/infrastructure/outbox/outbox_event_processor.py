@@ -94,10 +94,18 @@ class OutboxEventProcessor:
             payload=dict(event.payload or {}),
         )
         if event.event_type == "PAYMENT_REQUESTED":
-            await self._payment_gateway.process_payment(reservation)
+            payment_result = await self._payment_gateway.process_payment(reservation)
+            if not payment_result.success:
+                raise RuntimeError(
+                    f"Payment dispatch failed with status={payment_result.status}"
+                )
             return
         if event.event_type == "BOOKING_REQUESTED":
-            await self._provider_gateway.create_booking(reservation)
+            provider_result = await self._provider_gateway.create_booking(reservation)
+            if not provider_result.success:
+                raise RuntimeError(
+                    f"Provider dispatch failed with status={provider_result.status}"
+                )
             return
         raise ValueError(f"Unsupported outbox event type: {event.event_type}")
 
@@ -153,4 +161,3 @@ class OutboxEventProcessor:
         if value <= Decimal("0"):
             return fallback
         return value
-

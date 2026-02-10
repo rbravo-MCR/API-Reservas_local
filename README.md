@@ -25,6 +25,8 @@ uv sync --group dev
 Variables clave:
 
 - `DATABASE_URL` o (`MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`)
+- `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT_SECONDS`, `DB_POOL_RECYCLE_SECONDS`
+- `CORS_ALLOWED_ORIGINS` (lista separada por comas)
 - `STRIPE_API_BASE_URL`, `STRIPE_API_KEY`
 - `PROVIDER_API_BASE_URL`, `PROVIDER_API_KEY`
 - `EXTERNAL_API_TIMEOUT_SECONDS`
@@ -124,6 +126,44 @@ Detalle extendido en `docs/api-errors.md`.
 ```bash
 uv run ruff check src tests scripts alembic
 uv run pytest -q
+```
+
+## Pruebas de rendimiento (Locust)
+
+Ejecutar escenarios de carga y generar reporte:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_performance_tests.ps1 -StartLocalApi
+```
+
+Smoke rapido:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_performance_tests.ps1 -StartLocalApi -ScenarioProfile smoke
+```
+
+Documentacion completa: `docs/performance-testing.md`.
+
+## Pruebas de estres
+
+Ejecutar bateria de estres y generar reportes:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_stress_tests.ps1 -StartLocalApi
+```
+
+## Worker de outbox
+
+Ejecutar worker continuo:
+
+```bash
+uv run python scripts/run_outbox_worker.py --poll-interval-seconds 2 --batch-size 100
+```
+
+Procesar un lote y salir:
+
+```bash
+uv run python scripts/run_outbox_worker.py --once --batch-size 100
 ```
 
 ## Estructura

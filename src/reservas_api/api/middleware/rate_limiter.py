@@ -1,4 +1,3 @@
-import asyncio
 from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable
 from time import monotonic
@@ -28,7 +27,6 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         self._default_limit = default_limit_per_minute
         self._reservations_limit = reservations_limit_per_minute
         self._request_windows: dict[str, deque[float]] = defaultdict(deque)
-        self._lock = asyncio.Lock()
 
     async def dispatch(
         self,
@@ -41,20 +39,19 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         now = monotonic()
         cutoff = now - 60.0
 
-        async with self._lock:
-            window = self._request_windows[key]
-            while window and window[0] <= cutoff:
-                window.popleft()
-            if len(window) >= limit:
-                return JSONResponse(
-                    status_code=429,
-                    content=ErrorResponseDTO(
-                        error="Too many requests",
-                        message="Rate limit exceeded. Please retry later.",
-                        code="RATE_LIMIT_EXCEEDED",
-                    ).model_dump(),
-                )
-            window.append(now)
+        window = self._request_windows[key]
+        while window and window[0] <= cutoff:
+            window.popleft()
+        if len(window) >= limit:
+            return JSONResponse(
+                status_code=429,
+                content=ErrorResponseDTO(
+                    error="Too many requests",
+                    message="Rate limit exceeded. Please retry later.",
+                    code="RATE_LIMIT_EXCEEDED",
+                ).model_dump(),
+            )
+        window.append(now)
 
         return await call_next(request)
 

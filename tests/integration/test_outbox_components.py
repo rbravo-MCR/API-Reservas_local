@@ -43,6 +43,24 @@ class ControlledProviderGateway:
         )
 
 
+class UnsuccessfulPaymentGateway:
+    async def process_payment(self, reservation: Reservation) -> PaymentResult:
+        return PaymentResult(
+            success=False,
+            status="CIRCUIT_OPEN",
+            payload={"reservation": reservation.reservation_code.value},
+        )
+
+
+class UnsuccessfulProviderGateway:
+    async def create_booking(self, reservation: Reservation) -> ProviderResult:
+        return ProviderResult(
+            success=False,
+            status="CIRCUIT_OPEN",
+            payload={"reservation": reservation.reservation_code.value},
+        )
+
+
 def _build_reservation(code: str = "AB12CD34") -> Reservation:
     pickup = datetime(2026, 10, 1, 10, 0, tzinfo=UTC)
     dropoff = pickup + timedelta(days=2)
@@ -139,3 +157,27 @@ async def test_outbox_processor_retries_failed_events_and_marks_processed_after_
     assert payment_gateway.calls == 2
     assert provider_gateway.calls == 1
 
+
+@pytest.mark.asyncio
+async def test_outbox_processor_marks_events_failed_when_gateway_returns_unsuccessful_result(
+    mysql_async_session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    reservation = _build_reservation("OTBX0004")
+    publisher = OutboxEventPublisher(mysql_async_session_factory)
+    await publisher.save_reservation_with_outbox(reservation)
+
+    processor = OutboxEventProcessor(
+        session_factory=mysql_async_session_factory,
+        payment_gateway=UnsuccessfulPaymentGateway(),
+        provider_gateway=UnsuccessfulProviderGateway(),
+    )
+
+    processed = await processor.process_pending_once()
+    assert processed == 0
+
+    async with mysql_async_session_factory() as session:
+        result = await session.exec(select(ProviderOutboxEventModel))
+        statuses = {item.event_type: item.status for item in result.all()}
+
+    assert statuses["PAYMENT_REQUESTED"] == "FAILED"
+    assert statuses["BOOKING_REQUESTED"] == "FAILED"

@@ -28,7 +28,9 @@ def create_session_factory(
         build_database_url(app_settings),
         echo=app_settings.app_debug,
         pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
+        pool_size=app_settings.db_pool_size,
+        max_overflow=app_settings.db_max_overflow,
+        pool_timeout=app_settings.db_pool_timeout_seconds,
+        pool_recycle=app_settings.db_pool_recycle_seconds,
     )
     return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

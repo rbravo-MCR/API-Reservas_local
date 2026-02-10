@@ -66,6 +66,12 @@ class MySQLReservationRepository:
         session: AsyncSession,
         reservation: Reservation,
     ) -> Reservation:
+        if reservation.id is None:
+            model = self._to_model(reservation)
+            session.add(model)
+            await session.flush()
+            return self._to_domain(model)
+
         existing = await session.exec(
             select(ReservationModel).where(
                 ReservationModel.reservation_code == reservation.reservation_code.value
@@ -79,7 +85,6 @@ class MySQLReservationRepository:
             self._update_model(model, reservation)
 
         await session.flush()
-        await session.refresh(model)
         return self._to_domain(model)
 
     @staticmethod

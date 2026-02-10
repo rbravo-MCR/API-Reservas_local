@@ -58,6 +58,9 @@ class ApplicationContainer:
         if self._provider_client is not None:
             await self._provider_client.aclose()
             self._provider_client = None
+        engine = self.session_factory.kw.get("bind")
+        if engine is not None:
+            await engine.dispose()
 
     def create_reservation_repository(self) -> MySQLReservationRepository:
         """Create reservation repository instance."""

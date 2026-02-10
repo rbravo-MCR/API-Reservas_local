@@ -399,13 +399,13 @@ Este plan implementa la API de Reservas siguiendo arquitectura hexagonal con Fas
     - _Requirements: 16.6_
   - _Estado: completada (2026-02-09)_
 
-- [ ] 21. Implementar pruebas de rendimiento
-  - [ ] 21.1 Configurar herramienta de pruebas (Locust o Apache JMeter)
+- [x] 21. Implementar pruebas de rendimiento
+  - [x] 21.1 Configurar herramienta de pruebas (Locust o Apache JMeter)
     - Instalar y configurar Locust
     - Crear configuración base para pruebas
     - _Requirements: 11.1, 15.6_
 
-  - [ ] 21.2 Crear escenarios de prueba de rendimiento
+  - [x] 21.2 Crear escenarios de prueba de rendimiento
     - Escenario: 50 usuarios concurrentes creando reservas
     - Escenario: 100 usuarios concurrentes creando reservas
     - Escenario: Carga sostenida durante 10 minutos
@@ -413,22 +413,23 @@ Este plan implementa la API de Reservas siguiendo arquitectura hexagonal con Fas
     - Medir throughput (requests/segundo)
     - _Requirements: 11.1, 15.6_
 
-  - [ ] 21.3 Ejecutar pruebas de rendimiento y analizar resultados
+  - [x] 21.3 Ejecutar pruebas de rendimiento y analizar resultados
     - Verificar tiempos de respuesta < 500ms p95
     - Verificar no hay degradación bajo carga
     - Identificar cuellos de botella
     - Documentar resultados y métricas
     - _Requirements: 11.1, 15.6_
+  - _Estado: completada (2026-02-10, con hallazgos de latencia y errores DB bajo carga)_
 
-- [ ] 22. Implementar pruebas de estrés
-  - [ ] 22.1 Crear escenarios de prueba de estrés
+- [x] 22. Implementar pruebas de estrés
+  - [x] 22.1 Crear escenarios de prueba de estrés
     - Escenario: Incremento gradual hasta 500 usuarios concurrentes
     - Escenario: Picos de carga (spike testing)
     - Escenario: Carga extrema para encontrar punto de quiebre
     - Medir comportamiento del sistema bajo estrés
     - _Requirements: 11.1, 15.6_
 
-  - [ ] 22.2 Ejecutar pruebas de estrés y analizar resultados
+  - [x] 22.2 Ejecutar pruebas de estrés y analizar resultados
     - Identificar punto de quiebre del sistema
     - Verificar recuperación después de picos de carga
     - Verificar no hay pérdida de datos bajo estrés
@@ -436,43 +437,46 @@ Este plan implementa la API de Reservas siguiendo arquitectura hexagonal con Fas
     - Documentar límites del sistema
     - _Requirements: 10.5, 11.1, 15.6_
 
-  - [ ] 22.3 Validar unicidad de códigos bajo alta concurrencia
+  - [x] 22.3 Validar unicidad de códigos bajo alta concurrencia
     - Ejecutar prueba con 1000+ reservas simultáneas
     - Verificar que no hay colisiones de códigos
     - Verificar integridad de datos en base de datos
     - _Requirements: 11.2, 11.5_
 
-  - [ ] 22.4 Documentar resultados de pruebas de estrés
+  - [x] 22.4 Documentar resultados de pruebas de estrés
     - Crear reporte con métricas clave
     - Documentar recomendaciones de escalamiento
     - Documentar configuración óptima de recursos
     - _Requirements: 16.2_
+  - _Estado: completada (2026-02-10, con punto de quiebre identificado y validación de integridad sin colisiones)_
 
-- [ ] 23. Integración final y wiring
-  - [ ] 23.1 Conectar todos los componentes
+- [x] 23. Integración final y wiring
+  - [x] 23.1 Conectar todos los componentes
     - Configurar main.py con FastAPI app
     - Registrar routers
     - Configurar middleware
     - Configurar CORS si es necesario
     - _Requirements: 8.1_
 
-  - [ ] 23.2 Crear script de inicio de worker de outbox
+  - [x] 23.2 Crear script de inicio de worker de outbox
     - Script para ejecutar OutboxEventProcessor
     - Configurar como servicio separado
     - _Requirements: 10.6_
 
-  - [ ] 23.3 Escribir tests end-to-end
+  - [x] 23.3 Escribir tests end-to-end
     - Test flujo completo de creación de reserva
     - Test flujo con fallos de APIs externas
     - Test recuperación automática
     - _Requirements: 6.2, 6.3, 10.6_
+  - _Estado: completada (2026-02-10)_
 
-- [ ] 24. Checkpoint final - Verificar sistema completo
+- [x] 24. Checkpoint final - Verificar sistema completo
   - Ejecutar todos los tests (unit, property, integration, load)
   - Verificar cobertura de código >= 80%
   - Verificar documentación completa
   - Verificar que todas las propiedades de correctitud pasan
   - Preguntar al usuario si el sistema está listo para despliegue
+  - _Estado: completada (2026-02-10, pytest en verde: 74 passed, cobertura total 88%)_
 
 ## Notes
 

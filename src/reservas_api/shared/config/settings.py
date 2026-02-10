@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     app_debug: bool = Field(default=True, validation_alias=AliasChoices("APP_DEBUG", "DEBUG"))
     api_host: str = Field(default="0.0.0.0", validation_alias=AliasChoices("API_HOST"))
     api_port: int = Field(default=8000, validation_alias=AliasChoices("API_PORT"))
+    cors_allowed_origins: str = Field(
+        default="",
+        validation_alias=AliasChoices("CORS_ALLOWED_ORIGINS"),
+    )
 
     database_url: str = Field(default="", validation_alias=AliasChoices("DATABASE_URL"))
     mysql_host: str = Field(default="localhost", validation_alias=AliasChoices("MYSQL_HOST"))
@@ -20,6 +24,16 @@ class Settings(BaseSettings):
     mysql_user: str = Field(default="root", validation_alias=AliasChoices("MYSQL_USER"))
     mysql_password: str = Field(default="", validation_alias=AliasChoices("MYSQL_PASSWORD"))
     mysql_database: str = Field(default="reservas", validation_alias=AliasChoices("MYSQL_DATABASE"))
+    db_pool_size: int = Field(default=10, validation_alias=AliasChoices("DB_POOL_SIZE"))
+    db_max_overflow: int = Field(default=20, validation_alias=AliasChoices("DB_MAX_OVERFLOW"))
+    db_pool_timeout_seconds: int = Field(
+        default=30,
+        validation_alias=AliasChoices("DB_POOL_TIMEOUT_SECONDS"),
+    )
+    db_pool_recycle_seconds: int = Field(
+        default=1800,
+        validation_alias=AliasChoices("DB_POOL_RECYCLE_SECONDS"),
+    )
 
     stripe_api_base_url: str = Field(
         default="https://api.stripe.com", validation_alias=AliasChoices("STRIPE_API_BASE_URL")
@@ -62,6 +76,10 @@ class Settings(BaseSettings):
         ),
     )
     retry_max_attempts: int = Field(default=3, validation_alias=AliasChoices("RETRY_MAX_ATTEMPTS"))
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        return [value.strip() for value in self.cors_allowed_origins.split(",") if value.strip()]
 
 
 settings = Settings()
