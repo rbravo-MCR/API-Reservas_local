@@ -1,4 +1,6 @@
 from reservas_api.api.schemas.reservation_dto import (
+    AddonRequestDTO,
+    AddonResponseDTO,
     CustomerDTO,
     ErrorResponseDTO,
     ReservationRequestDTO,
@@ -7,6 +9,8 @@ from reservas_api.api.schemas.reservation_dto import (
 )
 
 __all__ = [
+    "AddonRequestDTO",
+    "AddonResponseDTO",
     "CustomerDTO",
     "ErrorResponseDTO",
     "ReservationRequestDTO",

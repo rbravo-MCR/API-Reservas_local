@@ -10,6 +10,7 @@ from reservas_api.api.middleware import (
     RateLimiterMiddleware,
     validation_exception_handler,
 )
+from reservas_api.api.routers.addons import router as addons_router
 from reservas_api.api.routers.health import router as health_router
 from reservas_api.api.routers.reservations import router as reservations_router
 from reservas_api.shared.config import ApplicationContainer, settings
@@ -57,5 +58,6 @@ def create_app() -> FastAPI:
     app.add_middleware(ErrorHandlerMiddleware)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.include_router(health_router, prefix="/api/v1")
+    app.include_router(addons_router, prefix="/api/v1")
     app.include_router(reservations_router, prefix="/api/v1")
     return app

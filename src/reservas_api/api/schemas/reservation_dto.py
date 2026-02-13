@@ -1,9 +1,33 @@
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
-from reservas_api.domain.enums import ReservationStatus
+from reservas_api.domain.enums import AddonCategory, ReservationStatus
+
+
+class AddonRequestDTO(BaseModel):
+    """Single add-on item included in a reservation request."""
+
+    addon_code: str = Field(min_length=3, max_length=3, examples=["GPS"])
+    quantity: int = Field(default=1, ge=1, le=99)
+    unit_price: Decimal = Field(gt=Decimal("0"), decimal_places=2, examples=["12.50"])
+
+
+class AddonResponseDTO(BaseModel):
+    """Single add-on item returned in a reservation response."""
+
+    addon_code: str
+    name: str
+    category: AddonCategory
+    quantity: int
+    unit_price: Decimal
+    total_price: Decimal
+    currency_code: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CustomerDTO(BaseModel):
@@ -34,6 +58,7 @@ class ReservationRequestDTO(BaseModel):
     total_amount: Decimal = Field(gt=Decimal("0"), decimal_places=2, examples=["180.50"])
     customer: CustomerDTO
     vehicle: VehicleDTO
+    addons: list[AddonRequestDTO] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_dropoff_after_pickup(self) -> ReservationRequestDTO:
@@ -51,6 +76,7 @@ class ReservationResponseDTO(BaseModel):
     pickup_datetime: datetime
     dropoff_datetime: datetime
     total_amount: Decimal
+    addons: list[AddonResponseDTO] = Field(default_factory=list)
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

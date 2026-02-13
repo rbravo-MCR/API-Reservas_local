@@ -6,10 +6,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from reservas_api.domain.entities import Reservation
+from reservas_api.domain.entities import Reservation, ReservationAddon
 from reservas_api.domain.enums import ReservationStatus
 from reservas_api.domain.value_objects import ReservationCode
-from reservas_api.infrastructure.db.models import ReservationModel
+from reservas_api.infrastructure.db.models import ReservationAddonModel, ReservationModel
 
 
 class ReservationNotFoundError(ValueError):
@@ -40,7 +40,26 @@ class MySQLReservationRepository:
             model = result.one_or_none()
             if model is None:
                 return None
-            return self._to_domain(model)
+            addon_result = await session.exec(
+                select(ReservationAddonModel).where(
+                    ReservationAddonModel.reservation_code == code.value
+                )
+            )
+            addon_models = addon_result.all()
+            reservation = self._to_domain(model)
+            reservation.addons = [
+                ReservationAddon(
+                    addon_code=a.addon_code,
+                    addon_name_snapshot=a.addon_name_snapshot,
+                    addon_category_snapshot=a.addon_category_snapshot,
+                    quantity=a.quantity,
+                    unit_price=a.unit_price,
+                    total_price=a.total_price,
+                    currency_code=a.currency_code,
+                )
+                for a in addon_models
+            ]
+            return reservation
 
     async def exists_code(self, code: ReservationCode) -> bool:
         async with self._session_factory() as session:

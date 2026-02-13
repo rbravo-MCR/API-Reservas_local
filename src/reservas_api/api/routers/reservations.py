@@ -3,14 +3,23 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, status
 
-from reservas_api.api.schemas import ErrorResponseDTO, ReservationRequestDTO, ReservationResponseDTO
+from reservas_api.api.schemas import (
+    AddonResponseDTO,
+    ErrorResponseDTO,
+    ReservationRequestDTO,
+    ReservationResponseDTO,
+)
 from reservas_api.application import (
+    AddonItem,
     CreateReservationRequest,
     CreateReservationUseCase,
     GenerateReservationCodeUseCase,
 )
 from reservas_api.infrastructure.outbox import OutboxEventPublisher
-from reservas_api.infrastructure.repositories import MySQLReservationRepository
+from reservas_api.infrastructure.repositories import (
+    MySQLAddonCatalogRepository,
+    MySQLReservationRepository,
+)
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -27,9 +36,11 @@ def _build_default_create_reservation_use_case_factory(
         repository = MySQLReservationRepository(session_factory)
         generate_code_use_case = GenerateReservationCodeUseCase(repository=repository)
         outbox_writer = OutboxEventPublisher(session_factory)
+        addon_catalog = MySQLAddonCatalogRepository(session_factory)
         return CreateReservationUseCase(
             generate_code_use_case=generate_code_use_case,
             outbox_writer=outbox_writer,
+            addon_catalog=addon_catalog,
         )
 
     return _factory
@@ -93,6 +104,14 @@ async def create_reservation(
     use_case: Annotated[CreateReservationUseCase, Depends(get_create_reservation_use_case)],
 ) -> ReservationResponseDTO:
     """Create and persist a reservation from validated API input."""
+    addon_items = [
+        AddonItem(
+            addon_code=a.addon_code,
+            quantity=a.quantity,
+            unit_price=a.unit_price,
+        )
+        for a in payload.addons
+    ]
     request_model = CreateReservationRequest(
         supplier_code=payload.supplier_code,
         pickup_office_code=payload.pickup_office_code,
@@ -102,8 +121,21 @@ async def create_reservation(
         total_amount=payload.total_amount,
         customer=payload.customer.model_dump(mode="json"),
         vehicle=payload.vehicle.model_dump(mode="json"),
+        addons=addon_items,
     )
     reservation = await use_case.execute(request_model)
+    addon_responses = [
+        AddonResponseDTO(
+            addon_code=a.addon_code,
+            name=a.addon_name_snapshot,
+            category=a.addon_category_snapshot,
+            quantity=a.quantity,
+            unit_price=a.unit_price,
+            total_price=a.total_price,
+            currency_code=a.currency_code,
+        )
+        for a in reservation.addons
+    ]
     return ReservationResponseDTO(
         reservation_code=reservation.reservation_code.value,
         status=reservation.status,
@@ -111,5 +143,6 @@ async def create_reservation(
         pickup_datetime=reservation.pickup_datetime,
         dropoff_datetime=reservation.dropoff_datetime,
         total_amount=reservation.total_amount,
+        addons=addon_responses,
         created_at=reservation.created_at,
     )

@@ -8,6 +8,19 @@ from reservas_api.domain.value_objects import ReservationCode
 
 
 @dataclass(slots=True, frozen=True)
+class ReservationAddon:
+    """Persisted add-on line item within a reservation (with snapshot)."""
+
+    addon_code: str
+    addon_name_snapshot: str
+    addon_category_snapshot: str
+    quantity: int
+    unit_price: Decimal
+    total_price: Decimal
+    currency_code: str = "USD"
+
+
+@dataclass(slots=True, frozen=True)
 class ReservationStatusChange:
     """Represents one reservation status transition with timestamp."""
 
@@ -39,6 +52,7 @@ class Reservation:
     id: int | None = None
     status: ReservationStatus = ReservationStatus.CREATED
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    addons: list[ReservationAddon] = field(default_factory=list)
     status_history: list[ReservationStatusChange] = field(default_factory=list)
 
     def __post_init__(self) -> None:

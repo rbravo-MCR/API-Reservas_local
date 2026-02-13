@@ -1,4 +1,5 @@
 from reservas_api.application.use_cases.create_reservation_use_case import (
+    AddonItem,
     CreateReservationPersistenceError,
     CreateReservationRequest,
     CreateReservationUseCase,
@@ -17,6 +18,7 @@ from reservas_api.application.use_cases.update_reservation_status_use_case impor
 )
 
 __all__ = [
+    "AddonItem",
     "CreateReservationPersistenceError",
     "CreateReservationRequest",
     "CreateReservationUseCase",

@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Protocol
@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from reservas_api.application.use_cases.generate_reservation_code_use_case import (
     GenerateReservationCodeUseCase,
 )
-from reservas_api.domain.entities import Reservation
+from reservas_api.domain.entities import Reservation, ReservationAddon
 from reservas_api.domain.ports import DomainEvent
 from reservas_api.shared.security import (
     enforce_pci_storage_rules,
@@ -20,6 +20,16 @@ class CreateReservationPersistenceError(RuntimeError):
     """Raised when reservation+outbox atomic persistence fails."""
 
     pass
+
+
+class AddonCatalogReader(Protocol):
+    """Port for reading the rental add-on catalog."""
+
+    async def get_active_addons_by_codes(
+        self, codes: list[str]
+    ) -> dict[str, dict[str, str]]:
+        """Return {code: {"name": ..., "category": ...}} for active addons."""
+        ...
 
 
 class ReservationOutboxWriter(Protocol):
@@ -45,6 +55,15 @@ class CreateReservationAuditLogger(Protocol):
 
 
 @dataclass(slots=True, frozen=True)
+class AddonItem:
+    """Single add-on requested for a reservation."""
+
+    addon_code: str
+    quantity: int
+    unit_price: Decimal
+
+
+@dataclass(slots=True, frozen=True)
 class CreateReservationRequest:
     """Application input model to create a reservation."""
 
@@ -56,6 +75,7 @@ class CreateReservationRequest:
     total_amount: Decimal
     customer: dict[str, Any]
     vehicle: dict[str, Any]
+    addons: list[AddonItem] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.supplier_code.strip():
@@ -101,11 +121,41 @@ class CreateReservationUseCase:
         self,
         generate_code_use_case: GenerateReservationCodeUseCase,
         outbox_writer: ReservationOutboxWriter,
+        addon_catalog: AddonCatalogReader | None = None,
         audit_logger: CreateReservationAuditLogger | None = None,
     ) -> None:
         self._generate_code_use_case = generate_code_use_case
         self._outbox_writer = outbox_writer
+        self._addon_catalog = addon_catalog
         self._audit_logger = audit_logger
+
+    async def _resolve_addons(
+        self, addon_items: list[AddonItem]
+    ) -> list[ReservationAddon]:
+        """Resolve add-on items against catalog and build domain snapshots."""
+        if not addon_items:
+            return []
+        codes = [item.addon_code for item in addon_items]
+        if self._addon_catalog is not None:
+            catalog = await self._addon_catalog.get_active_addons_by_codes(codes)
+        else:
+            catalog = {}
+        addons: list[ReservationAddon] = []
+        for item in addon_items:
+            info = catalog.get(item.addon_code)
+            if info is None:
+                raise ValueError(f"Add-on '{item.addon_code}' not found or inactive")
+            addons.append(
+                ReservationAddon(
+                    addon_code=item.addon_code,
+                    addon_name_snapshot=info["name"],
+                    addon_category_snapshot=info["category"],
+                    quantity=item.quantity,
+                    unit_price=item.unit_price,
+                    total_price=item.unit_price * item.quantity,
+                )
+            )
+        return addons
 
     async def execute(self, request: CreateReservationRequest) -> Reservation:
         """Create and persist a reservation from validated input."""
@@ -119,6 +169,7 @@ class CreateReservationUseCase:
         vehicle_snapshot = enforce_pci_storage_rules(
             sanitize_and_validate_payload(dict(request.vehicle))
         )
+        resolved_addons = await self._resolve_addons(request.addons)
         reservation = Reservation(
             reservation_code=reservation_code,
             supplier_code=supplier_code,
@@ -129,6 +180,7 @@ class CreateReservationUseCase:
             total_amount=request.total_amount,
             customer_snapshot=customer_snapshot,
             vehicle_snapshot=vehicle_snapshot,
+            addons=resolved_addons,
         )
         try:
             saved = await self._outbox_writer.save_reservation_with_outbox(reservation)

@@ -6,7 +6,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Column, Field, SQLModel
 
-from reservas_api.domain.enums import ReservationStatus
+from reservas_api.domain.enums import AddonCategory, ReservationStatus
 
 
 class SupplierModel(SQLModel, table=True):
@@ -164,6 +164,67 @@ class ReservationProviderRequestModel(SQLModel, table=True):
         ),
     )
     responded_at: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+
+
+class RentalAddonModel(SQLModel, table=True):
+    __tablename__ = "rental_addons"
+
+    id: int | None = Field(default=None, primary_key=True)
+    code: str = Field(sa_column=Column(String(3), nullable=False, unique=True))
+    name: str = Field(sa_column=Column(String(80), nullable=False))
+    category: AddonCategory = Field(
+        sa_column=Column(
+            SAEnum(AddonCategory, name="addon_category", native_enum=False),
+            nullable=False,
+        )
+    )
+    description: str | None = Field(default=None, sa_column=Column(String(255), nullable=True))
+    is_active: bool = Field(default=True)
+    sort_order: int = Field(default=100)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now(),
+        ),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now(),
+        ),
+    )
+
+
+class ReservationAddonModel(SQLModel, table=True):
+    __tablename__ = "reservation_addons"
+
+    id: int | None = Field(default=None, primary_key=True)
+    reservation_code: str = Field(
+        sa_column=Column(
+            String(64),
+            nullable=False,
+            index=True,
+        )
+    )
+    addon_code: str = Field(sa_column=Column(String(3), nullable=False, index=True))
+    addon_name_snapshot: str = Field(sa_column=Column(String(80), nullable=False))
+    addon_category_snapshot: str = Field(sa_column=Column(String(20), nullable=False))
+    quantity: int = Field(default=1)
+    unit_price: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    total_price: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    currency_code: str = Field(default="USD", sa_column=Column(String(3), nullable=False))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now(),
+        ),
+    )
 
 
 class ProviderOutboxEventModel(SQLModel, table=True):

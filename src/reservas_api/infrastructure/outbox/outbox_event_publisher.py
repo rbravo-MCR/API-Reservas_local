@@ -5,7 +5,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from reservas_api.domain.entities import Reservation
 from reservas_api.domain.ports import DomainEvent
-from reservas_api.infrastructure.db.models import ProviderOutboxEventModel
+from reservas_api.infrastructure.db.models import (
+    ProviderOutboxEventModel,
+    ReservationAddonModel,
+)
 from reservas_api.infrastructure.repositories import MySQLReservationRepository
 
 
@@ -35,12 +38,38 @@ class OutboxEventPublisher:
                     reservation,
                     session=session,
                 )
+                for addon in reservation.addons:
+                    session.add(
+                        ReservationAddonModel(
+                            reservation_code=saved_reservation.reservation_code.value,
+                            addon_code=addon.addon_code,
+                            addon_name_snapshot=addon.addon_name_snapshot,
+                            addon_category_snapshot=addon.addon_category_snapshot,
+                            quantity=addon.quantity,
+                            unit_price=addon.unit_price,
+                            total_price=addon.total_price,
+                            currency_code=addon.currency_code,
+                        )
+                    )
                 for event in outbox_events:
                     session.add(self._to_model(event))
+        saved_reservation.addons = list(reservation.addons)
         return saved_reservation
 
     @staticmethod
     def build_reservation_events(reservation: Reservation) -> list[DomainEvent]:
+        addons_payload = [
+            {
+                "addon_code": addon.addon_code,
+                "name": addon.addon_name_snapshot,
+                "category": addon.addon_category_snapshot,
+                "quantity": addon.quantity,
+                "unit_price": str(addon.unit_price),
+                "total_price": str(addon.total_price),
+                "currency_code": addon.currency_code,
+            }
+            for addon in reservation.addons
+        ]
         payload = {
             "reservation": {
                 "reservation_code": reservation.reservation_code.value,
@@ -52,6 +81,7 @@ class OutboxEventPublisher:
                 "total_amount": str(reservation.total_amount),
                 "customer_snapshot": reservation.customer_snapshot,
                 "vehicle_snapshot": reservation.vehicle_snapshot,
+                "addons": addons_payload,
             }
         }
         return [

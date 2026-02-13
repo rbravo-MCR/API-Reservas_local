@@ -1,6 +1,8 @@
 from reservas_api.infrastructure.db.models.reservation_models import (
     OfficeModel,
     ProviderOutboxEventModel,
+    RentalAddonModel,
+    ReservationAddonModel,
     ReservationContactModel,
     ReservationModel,
     ReservationProviderRequestModel,
@@ -11,6 +13,8 @@ from reservas_api.infrastructure.db.models.reservation_models import (
 __all__ = [
     "OfficeModel",
     "ProviderOutboxEventModel",
+    "RentalAddonModel",
+    "ReservationAddonModel",
     "ReservationContactModel",
     "ReservationModel",
     "ReservationProviderRequestModel",
